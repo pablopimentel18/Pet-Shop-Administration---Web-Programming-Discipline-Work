@@ -3,22 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pet Shop - Agendamento</title>
+    <title>Pet Shop - Banho e Tosa</title>
+    <!-- CSS Principal -->
     <link rel="stylesheet" href="/css/style.css">
+    <!-- Ícones FontAwesome (via CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <header>
-        <h1>Pet Shop - Banho e Tosa</h1>
-        <nav>
-            <a href="/">Área do Cliente</a> | 
-            <a href="/listaPetAgenda">Admin: Agenda</a> | 
-            <a href="/ajustaPetAgenda">Admin: Configurar</a>
+
+    <header class="cabecalho-principal">
+        <a href="/" class="logotipo">
+            <i class="fa-solid fa-paw"></i> Pet Shop
+        </a>
+        <nav class="navegacao-principal">
+            <a href="/"><i class="fa-solid fa-calendar-check"></i> Agendar</a>
+            <a href="/listaPetAgenda"><i class="fa-solid fa-clipboard-list"></i> Agenda Admin</a>
+            <a href="/ajustaPetAgenda"><i class="fa-solid fa-gear"></i> Configurações</a>
         </nav>
     </header>
-    
-    <main>
-        <!-- Aqui entrará o conteúdo específico de cada tela -->
+
+    <main class="conteudo-principal">
         {{{body}}}
     </main>
+
+    <footer class="rodape-principal">
+        <p>&copy; 2026 Pet Shop. Sistema de Agendamento.</p>
+    </footer>
+
 </body>
 </html>

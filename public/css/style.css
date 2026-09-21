@@ -1,0 +1,299 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap');
+
+:root {
+    --cor-primaria: #00B4D8; /* Ciano amigável */
+    --cor-secundaria: #03045E; /* Azul escuro para textos fortes */
+    --cor-acento: #F77F00; /* Laranja para botões de destaque */
+    --cor-acento-hover: #D66D00;
+    --cor-fundo: #F8F9FA;
+    --cor-cartao: #FFFFFF;
+    --cor-texto: #495057;
+    --cor-borda: #E9ECEF;
+    --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.05);
+    --sombra-forte: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --transicao: all 0.3s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Nunito', sans-serif;
+}
+
+body {
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* --- CABEÇALHO --- */
+.cabecalho-principal {
+    background-color: var(--cor-cartao);
+    box-shadow: var(--sombra-suave);
+    padding: 1rem 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logotipo {
+    color: var(--cor-primaria);
+    font-size: 1.8rem;
+    font-weight: 800;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navegacao-principal a {
+    color: var(--cor-secundaria);
+    text-decoration: none;
+    margin-left: 20px;
+    font-weight: 600;
+    transition: var(--transicao);
+    padding: 8px 16px;
+    border-radius: 20px;
+}
+
+.navegacao-principal a:hover,
+.navegacao-principal a.ativo {
+    background-color: var(--cor-primaria);
+    color: white;
+}
+
+/* --- ESTRUTURA PRINCIPAL --- */
+.conteudo-principal {
+    flex: 1;
+    width: 100%;
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.cabecalho-seccao {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.cabecalho-seccao h2 {
+    color: var(--cor-secundaria);
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+}
+
+.cabecalho-seccao p {
+    color: #6C757D;
+    font-size: 1.1rem;
+}
+
+/* --- CALENDÁRIO (GRID) --- */
+.grid-horarios {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 50px;
+}
+
+.cartao-horario {
+    background: var(--cor-cartao);
+    border: 1px solid var(--cor-borda);
+    border-radius: 12px;
+    padding: 25px 20px;
+    text-align: center;
+    box-shadow: var(--sombra-suave);
+    transition: var(--transicao);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.cartao-horario:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--sombra-forte);
+    border-color: var(--cor-primaria);
+}
+
+.cartao-horario .dia {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--cor-secundaria);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.cartao-horario .hora {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--cor-primaria);
+    margin: 15px 0;
+}
+
+.cartao-horario .vagas {
+    font-size: 0.9rem;
+    color: #6C757D;
+    margin-bottom: 20px;
+    background-color: #E6FAFD;
+    padding: 5px 10px;
+    border-radius: 15px;
+    display: inline-block;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--transicao);
+    width: 100%;
+}
+
+.btn-selecionar {
+    background-color: var(--cor-cartao);
+    color: var(--cor-primaria);
+    border: 2px solid var(--cor-primaria);
+}
+
+.btn-selecionar:hover {
+    background-color: var(--cor-primaria);
+    color: white;
+}
+
+.btn-primario {
+    background-color: var(--cor-acento);
+    color: white;
+}
+
+.btn-primario:hover {
+    background-color: var(--cor-acento-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(247, 127, 0, 0.3);
+}
+
+/* --- FORMULÁRIOS --- */
+.painel-formulario {
+    background: var(--cor-cartao);
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: var(--sombra-suave);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.painel-formulario h3 {
+    color: var(--cor-secundaria);
+    margin-bottom: 25px;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.alerta-selecao {
+    background-color: #E6FAFD;
+    color: var(--cor-secundaria);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    text-align: center;
+    border-left: 4px solid var(--cor-primaria);
+}
+
+.grupo-input {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.grupo-input label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--cor-secundaria);
+}
+
+.grupo-input input, .grupo-input select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid var(--cor-borda);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: var(--transicao);
+    background-color: var(--cor-fundo);
+}
+
+.grupo-input input:focus, .grupo-input select:focus {
+    outline: none;
+    border-color: var(--cor-primaria);
+    background-color: var(--cor-cartao);
+}
+
+/* --- TABELAS PARA ADMINISTRAÇÃO --- */
+.tabela-container {
+    background: var(--cor-cartao);
+    border-radius: 16px;
+    box-shadow: var(--sombra-suave);
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+.tabela-admin {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.tabela-admin th {
+    background-color: var(--cor-secundaria);
+    color: white;
+    padding: 18px 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+
+.tabela-admin td {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--cor-borda);
+    color: var(--cor-texto);
+}
+
+.tabela-admin tr:last-child td {
+    border-bottom: none;
+}
+
+.tabela-admin tr:hover td {
+    background-color: #F8F9FA;
+}
+
+/* --- RODAPÉ --- */
+.rodape-principal {
+    text-align: center;
+    padding: 20px;
+    background-color: var(--cor-secundaria);
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: auto;
+}
+
+/* --- RESPONSIVIDADE --- */
+@media (max-width: 768px) {
+    .cabecalho-principal {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .painel-formulario {
+        padding: 20px;
+    }
+    
+    .tabela-container {
+        overflow-x: auto;
+    }
+}

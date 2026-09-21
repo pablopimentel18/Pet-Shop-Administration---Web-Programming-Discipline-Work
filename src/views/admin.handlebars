@@ -1,2 +1,36 @@
-<h2>{{titulo}}</h2>
-<p>Área restrita do Pet Shop.</p>
+<div class="cabecalho-seccao">
+    <h2>Painel de Administração</h2>
+    <p>{{titulo}}</p>
+</div>
+
+<div class="painel-formulario">
+    <h3><i class="fa-solid fa-clock"></i> Adicionar / Atualizar Horário</h3>
+    
+    <!-- O action e o method estão exatamente como o Pablo pediu -->
+    <form action="/ajustaPetAgenda" method="POST">
+        
+        <div class="grupo-input">
+            <label for="dia">Dia da Semana:</label>
+            <select name="dia" id="dia" required>
+                <option value="Segunda">Segunda-feira</option>
+                <option value="Terça">Terça-feira</option>
+                <option value="Quarta">Quarta-feira</option>
+                <option value="Quinta">Quinta-feira</option>
+                <option value="Sexta">Sexta-feira</option>
+                <option value="Sábado">Sábado</option>
+            </select>
+        </div>
+
+        <div class="grupo-input">
+            <label for="horario">Horário de Atendimento:</label>
+            <input type="time" name="horario" id="horario" required>
+        </div>
+
+        <div class="grupo-input">
+            <label for="capacidade">Capacidade (atendimentos simultâneos):</label>
+            <input type="number" name="capacidade" id="capacidade" min="0" required>
+        </div>
+
+        <button type="submit" class="btn btn-primario">Salvar Configuração</button>
+    </form>
+</div>
