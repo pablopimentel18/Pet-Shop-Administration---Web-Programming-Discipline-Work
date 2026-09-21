@@ -4,6 +4,7 @@ const path = require('path');
 const { connectDB } = require('./src/config/database');
 const app = express();
 const PORT = 3000;
+const rotas = require('./src/routes/rotas');
 
 // 1. Configuração do Handlebars
 // Dizemos ao Express onde estão as pastas 'views' e 'layouts'
@@ -22,12 +23,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// 4. Rota principal - Renderiza a página do cliente
-app.get('/', (req, res) => {
-    res.render('cliente');
-});
+// 4. Rotas do sistema
+app.use('/', rotas);
 
-// 5. Inicia o servidor
-app.listen(PORT, () => {
-    console.log(`Servidor rodando em http://localhost:${PORT}`);
+// 5. Inicia o Banco de Dados e depois o Servidor
+connectDB().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Servidor rodando em http://localhost:${PORT}`);
+    });
 });
