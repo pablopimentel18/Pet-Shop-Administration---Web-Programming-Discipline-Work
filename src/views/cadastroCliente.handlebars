@@ -1,0 +1,22 @@
+<h1>Cadastro de Novo Cliente</h1>
+<hr>
+<section style="max-width: 400px; margin-top: 20px;">
+    <form action="/cadastroCliente" method="POST">
+        <label style="display: block; margin-top: 10px;">Nome Completo:</label>
+        <input type="text" name="nome" required style="width: 100%;">
+
+        <label style="display: block; margin-top: 10px;">CPF (Somente números):</label>
+        <input type="text" name="cpf" required style="width: 100%;">
+
+        <label style="display: block; margin-top: 10px;">E-mail:</label>
+        <input type="email" name="email" required style="width: 100%;">
+
+        <button type="submit" style="margin-top: 20px; padding: 10px; background: blue; color: white; width: 100%;">
+            Finalizar Cadastro
+        </button>
+    </form>
+    
+    <div style="margin-top: 15px; text-align: center;">
+        <a href="/">Já sou cadastrado (Voltar ao Agendamento)</a>
+    </div>
+</section>

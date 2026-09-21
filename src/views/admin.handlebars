@@ -1,36 +1,63 @@
-<div class="cabecalho-seccao">
-    <h2>Painel de Administração</h2>
-    <p>{{titulo}}</p>
-</div>
+<h1>{{titulo}}</h1>
+<hr>
 
-<div class="painel-formulario">
-    <h3><i class="fa-solid fa-clock"></i> Adicionar / Atualizar Horário</h3>
-    
-    <!-- O action e o method estão exatamente como o Pablo pediu -->
+<nav style="margin-bottom: 20px;">
+    <a href="/ajustaPetAgenda" style="margin-right: 15px;">Configurar Horários</a>
+    <a href="/listaPetAgenda">Ver Agendamentos</a>
+</nav>
+
+<!-- Só aparece na rota /ajustaPetAgenda -->
+{{#if mostrarFormulario}}
+<section>
+    <h3>Adicionar / Atualizar Horário</h3>
     <form action="/ajustaPetAgenda" method="POST">
-        
-        <div class="grupo-input">
-            <label for="dia">Dia da Semana:</label>
-            <select name="dia" id="dia" required>
-                <option value="Segunda">Segunda-feira</option>
-                <option value="Terça">Terça-feira</option>
-                <option value="Quarta">Quarta-feira</option>
-                <option value="Quinta">Quinta-feira</option>
-                <option value="Sexta">Sexta-feira</option>
-                <option value="Sábado">Sábado</option>
-            </select>
-        </div>
+        <label>Dia da Semana:</label>
+        <select name="dia" required>
+            <option value="Segunda">Segunda</option>
+            <option value="Terça">Terça</option>
+            <option value="Quarta">Quarta</option>
+            <option value="Quinta">Quinta</option>
+            <option value="Sexta">Sexta</option>
+            <option value="Sábado">Sábado</option>
+        </select>
 
-        <div class="grupo-input">
-            <label for="horario">Horário de Atendimento:</label>
-            <input type="time" name="horario" id="horario" required>
-        </div>
+        <label style="margin-left: 10px;">Horário:</label>
+        <input type="time" name="horario" required>
 
-        <div class="grupo-input">
-            <label for="capacidade">Capacidade (atendimentos simultâneos):</label>
-            <input type="number" name="capacidade" id="capacidade" min="0" required>
-        </div>
+        <label style="margin-left: 10px;">Capacidade:</label>
+        <input type="number" name="capacidade" min="0" style="width: 60px;" required>
 
-        <button type="submit" class="btn btn-primario">Salvar Configuração</button>
+        <button type="submit" style="margin-left: 10px;">Salvar Configuração</button>
     </form>
-</div>
+</section>
+{{/if}}
+
+<!-- Só aparece na rota /listaPetAgenda -->
+{{#if mostrarLista}}
+<section>
+    <table border="1" style="width: 100%; text-align: left; border-collapse: collapse;">
+        <thead style="background-color: #f2f2f2;">
+            <tr>
+                <th style="padding: 8px;">Data (Dia)</th>
+                <th style="padding: 8px;">Horário</th>
+                <th style="padding: 8px;">Cliente</th>
+                <th style="padding: 8px;">CPF</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each agendamentos}}
+                <tr>
+                    <td style="padding: 8px;">{{this.dia}}</td>
+                    <td style="padding: 8px;">{{this.horario}}</td>
+                    <td style="padding: 8px;">{{this.cliente_nome}}</td>
+                    <td style="padding: 8px;">{{this.cliente_cpf}}</td>
+                </tr>
+            {{else}}
+                <tr>
+                    <td colspan="4" style="padding: 15px; text-align: center;">Nenhum agendamento registado até ao momento.</td>
+                </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</section>
+{{/if}}
