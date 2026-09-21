@@ -45,11 +45,14 @@ router.get('/listaPetAgenda', async (req, res) => {
             cliente_cpf: agendamento.dados_do_cliente.cpf
         }));
 
+        const configHorarios = await db.collection('configuracao').find().sort({ dia: 1, horario: 1 }).toArray();
+
         // Passamos a flag mostrarLista como true e enviamos os dados
         res.render('admin', { 
             titulo: "Agenda de Atendimentos", 
             mostrarLista: true,
-            agendamentos: agendamentosFormatados
+            agendamentos: agendamentosFormatados,
+            horariosCadastrados: configHorarios
         });
     } catch (error) {
         console.error("Erro ao procurar a agenda:", error);
@@ -145,24 +148,29 @@ router.post('/cadastroCliente', async (req, res) => {
     try {
         const db = getDB();
         const { nome, cpf, email } = req.body;
+        const cpfLimpo = cpf.replace(/\D/g, '');
 
         // Verifica se o CPF já existe no banco (Primary Key)
-        const clienteExiste = await db.collection('clientes').findOne({ cpf: cpf });
+        const clienteExiste = await db.collection('clientes').findOne({ cpf: cpfLimpo });
         
         if (clienteExiste) {
             return res.send(`
-                <div style="text-align: center; margin-top: 50px;">
-                    <h2 style="color: red;">CPF já cadastrado!</h2>
-                    <p>Este CPF já possui cadastro no nosso sistema.</p>
-                    <a href="/">Ir para tela de agendamento</a>
-                </div>
+                <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Aviso - Pet Shop</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></head>
+                <body style="display: flex; align-items: center; justify-content: center; height: 100vh; background-color: var(--cor-fundo);">
+                    <div class="painel-formulario" style="text-align: center; max-width: 500px;">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 4rem; color: #F77F00; margin-bottom: 20px;"></i>
+                        <h2 style="color: var(--cor-secundaria); margin-bottom: 10px;">CPF já cadastrado!</h2>
+                        <p style="color: var(--cor-texto); margin-bottom: 25px;">Este CPF já possui cadastro no nosso sistema.</p>
+                        <a href="/" class="btn btn-primario" style="text-decoration: none; display: inline-block;">Ir para Agendamento</a>
+                    </div>
+                </body></html>
             `);
         }
 
         // Insere o novo cliente
         await db.collection('clientes').insertOne({
             nome: nome,
-            cpf: cpf,
+            cpf: cpfLimpo,
             email: email,
             data_cadastro: new Date()
         });
@@ -180,18 +188,23 @@ router.post('/agendar', async (req, res) => {
     try {
         const db = getDB();
         const { horario_id, cpf } = req.body;
+        const cpfLimpo = cpf.replace(/\D/g, '');
 
-        const cliente = await db.collection('clientes').findOne({ cpf: cpf });
+        const cliente = await db.collection('clientes').findOne({ cpf: cpfLimpo });
         
         if (!cliente) {
             return res.send(`
-                <div style="text-align: center; margin-top: 50px;">
-                    <h2 style="color: red;">Cliente não encontrado!</h2>
-                    <p>O CPF informado não está cadastrado em nosso sistema.</p>
-                    <a href="/cadastroCliente">Clique aqui para se cadastrar</a>
-                </div>
+                <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Aviso - Pet Shop</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></head>
+                <body style="display: flex; align-items: center; justify-content: center; height: 100vh; background-color: var(--cor-fundo);">
+                    <div class="painel-formulario" style="text-align: center; max-width: 500px;">
+                        <i class="fa-solid fa-circle-xmark" style="font-size: 4rem; color: #DC3545; margin-bottom: 20px;"></i>
+                        <h2 style="color: var(--cor-secundaria); margin-bottom: 10px;">Cliente não encontrado!</h2>
+                        <p style="color: var(--cor-texto); margin-bottom: 25px;">O CPF informado não está cadastrado em nosso sistema.</p>
+                        <a href="/cadastroCliente" class="btn btn-primario" style="text-decoration: none; display: inline-block; background-color: var(--cor-primaria); border: none;">Fazer Cadastro</a>
+                    </div>
+                </body></html>
             `);
-        }   
+        }  
         // REQUISITOS 1 e 4: Verifica a disponibilidade E atualiza a capacidade de forma atômica
         // O $inc diminui a capacidadeDisponivel em 1 APENAS se ela for maior que 0 ($gt: 0)
 
@@ -203,11 +216,15 @@ router.post('/agendar', async (req, res) => {
         // Se o findOneAndUpdate retornar vazio, significa que alguém pegou a última vaga no milissegundo anterior
         if (!horarioAtualizado) {
             return res.send(`
-                <div style="text-align: center; margin-top: 50px;">
-                    <h2 style="color: red;">Desculpe!</h2>
-                    <p>Este horário acabou de ser preenchido por outro cliente ou não existe mais.</p>
-                    <a href="/">Voltar para o calendário</a>
-                </div>
+                <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Aviso - Pet Shop</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></head>
+                <body style="display: flex; align-items: center; justify-content: center; height: 100vh; background-color: var(--cor-fundo);">
+                    <div class="painel-formulario" style="text-align: center; max-width: 500px;">
+                        <i class="fa-regular fa-face-frown" style="font-size: 4rem; color: #DC3545; margin-bottom: 20px;"></i>
+                        <h2 style="color: var(--cor-secundaria); margin-bottom: 10px;">Poxa! Vaga preenchida.</h2>
+                        <p style="color: var(--cor-texto); margin-bottom: 25px;">Este horário acabou de ser reservado por outro cliente.</p>
+                        <a href="/" class="btn btn-primario" style="text-decoration: none; display: inline-block; background-color: var(--cor-primaria); border: none;">Voltar para o calendário</a>
+                    </div>
+                </body></html>
             `);
         }
 
@@ -223,11 +240,15 @@ router.post('/agendar', async (req, res) => {
 
         // REQUISITO 5: Informa ao cliente que o agendamento foi um sucesso
         res.send(`
-            <div style="text-align: center; margin-top: 50px;">
-                <h2 style="color: green;">Agendamento Confirmado!</h2>
-                <p>Olá, ${cliente.nome}. Seu horário para ${horarioAtualizado.dia} às ${horarioAtualizado.horario} foi marcado com sucesso.</p>
-                <a href="/">Voltar ao Início</a>
-            </div>
+            <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Sucesso - Pet Shop</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></head>
+            <body style="display: flex; align-items: center; justify-content: center; height: 100vh; background-color: var(--cor-fundo);">
+                <div class="painel-formulario" style="text-align: center; max-width: 600px; border-top: 5px solid #28a745;">
+                    <i class="fa-solid fa-circle-check" style="font-size: 4rem; color: #28a745; margin-bottom: 20px;"></i>
+                    <h2 style="color: var(--cor-secundaria); margin-bottom: 15px;">Agendamento Confirmado!</h2>
+                    <p style="color: var(--cor-texto); margin-bottom: 25px; font-size: 1.1rem;">Olá, <strong>${cliente.nome}</strong>. O banho e tosa foi marcado com sucesso para <strong>${horarioAtualizado.dia} às ${horarioAtualizado.horario}</strong>.</p>
+                    <a href="/" class="btn btn-primario" style="text-decoration: none; display: inline-block;">Voltar ao Início</a>
+                </div>
+            </body></html>
         `);
 
     } catch (error) {

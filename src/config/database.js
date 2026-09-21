@@ -2,6 +2,7 @@ const { MongoClient } = require('mongodb');
 
 // URL padrão do MongoDB rodando na sua máquina
 const url = 'mongodb://mongoadmin:senha@127.0.0.1:27017/?authSource=admin';
+//const url = 'mongodb://127.0.0.1:27017';
 const dbName = 'petshopDB'; // Nome do banco de dados que será criado
 
 let db;

@@ -1,38 +1,82 @@
-<h1>Agendamento - Banho e Tosa</h1>
-<hr>
+<div class="cabecalho-seccao">
+    <h2>Agendamento - Banho e Tosa</h2>
+    <p>Selecione o melhor horário para o seu pet e garanta um atendimento exclusivo.</p>
+</div>
 
 {{#if horarios.length}}
-    <section style="max-width: 400px; margin-top: 20px;">
-        <h3>Agende o seu horário</h3>
-        <form action="/agendar" method="POST">
-            
-            <label style="display: block; margin-top: 10px;">Selecione um horário disponível:</label>
-            <select name="horario_id" required style="width: 100%;">
-                <option value="" disabled selected>Escolha um dia e horário...</option>
-                {{#each horarios}}
-                    <option value="{{this._id}}">
-                        {{this.dia}} às {{this.horario}} (Vagas: {{this.capacidadeDisponivel}})
-                    </option>
-                {{/each}}
-            </select>
+    <!-- Grade de Horários Estilizada -->
+    <div class="grid-horarios">
+        {{#each horarios}}
+            <div class="cartao-horario">
+                <div>
+                    <p class="dia">{{this.dia}}</p>
+                    <p class="hora">{{this.horario}}</p>
+                    <p class="vagas"><i class="fa-solid fa-users"></i> {{this.capacidadeDisponivel}} vagas disponíveis</p>
+                </div>
+                <button type="button" class="btn btn-selecionar" onclick="selecionarHorario('{{this._id}}', '{{this.dia}}', '{{this.horario}}')">
+                    Selecionar
+                </button>
+            </div>
+        {{/each}}
+    </div>
 
-            <label style="display: block; margin-top: 10px;">Informe o seu CPF:</label>
-            <input type="text" name="cpf" placeholder="Apenas números" required style="width: 100%;">
+    <!-- Formulário Final -->
+    <div class="painel-formulario" id="zona-formulario">
+        <h3><i class="fa-solid fa-calendar-check"></i> Confirme seu Horário</h3>
+        
+        <div id="alerta-selecao" class="alerta-selecao" style="display: none;">
+            Horário escolhido: <strong id="texto-horario-selecionado">Nenhum</strong>
+        </div>
 
-            <button type="submit" style="display: block; margin-top: 15px; padding: 10px; background: green; color: white; width: 100%;">
+        <form action="/agendar" method="POST" id="formAgendamento">
+            <!-- O ID oculto que vai para o rotas.js do Pablo -->
+            <input type="hidden" id="horario_id" name="horario_id" required>
+
+            <div class="grupo-input">
+                <label for="cpf">Informe o seu CPF (já cadastrado):</label>
+                <!-- Máscara aplicada diretamente no input -->
+                <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" required maxlength="14" oninput="mascaraCPF(this)">
+            </div>
+
+            <button type="submit" class="btn btn-primario" id="btn-submit" disabled>
                 Confirmar Agendamento
             </button>
         </form>
 
-        <div style="margin-top: 20px; padding: 15px; background: #f9f9f9; text-align: center; border: 1px solid #ddd;">
-            <p style="margin: 0 0 10px 0;"><strong>Ainda não é nosso cliente?</strong></p>
-            <a href="/cadastroCliente" style="padding: 8px 15px; background: blue; color: white; text-decoration: none;">
-                Fazer Cadastro
+        <div style="margin-top: 25px; text-align: center; padding-top: 15px; border-top: 1px solid #E9ECEF;">
+            <p style="color: #6C757D; margin-bottom: 10px;">Ainda não é nosso cliente?</p>
+            <a href="/cadastroCliente" style="color: var(--cor-primaria); font-weight: bold; text-decoration: none;">
+                <i class="fa-solid fa-user-plus"></i> Fazer Cadastro
             </a>
         </div>
-    </section>
+    </div>
+
+    <script>
+        function selecionarHorario(id, dia, hora) {
+            // Alimenta o backend do Pablo
+            document.getElementById('horario_id').value = id;
+            
+            // UI/UX para o cliente
+            const alerta = document.getElementById('alerta-selecao');
+            alerta.style.display = 'block';
+            document.getElementById('texto-horario-selecionado').innerText = dia + ' às ' + hora;
+            
+            document.getElementById('btn-submit').disabled = false;
+            document.getElementById('zona-formulario').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function mascaraCPF(campo) {
+            let valor = campo.value.replace(/\D/g, "");
+            valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
+            valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
+            valor = valor.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+            campo.value = valor;
+        }
+    </script>
 {{else}}
-    <section style="padding: 20px; background-color: #f8d7da; color: #721c24;">
-        <p>Infelizmente não temos horários disponíveis no momento. Tente novamente mais tarde.</p>
-    </section>
+    <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 12px; box-shadow: var(--sombra-suave);">
+        <i class="fa-regular fa-face-frown" style="font-size: 4rem; color: #ccc; margin-bottom: 20px;"></i>
+        <h3 style="color: var(--cor-secundaria);">Poxa! Não temos horários disponíveis no momento.</h3>
+        <p style="color: #6C757D; margin-top: 10px;">Por favor, retorne mais tarde ou entre em contato pelo nosso telefone.</p>
+    </div>
 {{/if}}
