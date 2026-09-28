@@ -17,8 +17,20 @@
         </a>
         <nav class="navegacao-principal">
             <a href="/"><i class="fa-solid fa-calendar-check"></i> Agendar</a>
-            <a href="/listaPetAgenda"><i class="fa-solid fa-clipboard-list"></i> Agenda Admin</a>
-            <a href="/ajustaPetAgenda"><i class="fa-solid fa-clock-rotate-left"></i> Gerenciar Horários</a>
+            
+            <!-- Mostra menus de admin e botão sair APENAS se estiver logado -->
+            {{#if adminLogado}}
+                <a href="/listaPetAgenda"><i class="fa-solid fa-clipboard-list"></i> Agenda Admin</a>
+                <a href="/ajustaPetAgenda"><i class="fa-solid fa-clock-rotate-left"></i> Gerenciar Horários</a>
+                
+                <span style="color: var(--cor-secundaria); font-weight: 800; margin-left: 20px; border-left: 2px solid var(--cor-borda); padding-left: 20px;">
+                    <i class="fa-solid fa-user-tie"></i> Logado como Admin
+                </span>
+                <a href="/logout" style="color: #dc3545; padding-left: 10px;"><i class="fa-solid fa-right-from-bracket"></i> Sair</a>
+            {{else}}
+                <!-- Botão sutil para entrar na área restrita se não estiver logado -->
+                <a href="/login"><i class="fa-solid fa-lock"></i> Área Restrita</a>
+            {{/if}}
         </nav>
     </header>
 

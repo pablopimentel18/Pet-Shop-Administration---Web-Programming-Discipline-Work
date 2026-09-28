@@ -1,25 +1,35 @@
-<section style="max-width: 300px; margin: 50px auto; text-align: center;">
-    <h2>Área Restrita</h2>
-    <p>Acesso exclusivo para funcionários do Pet Shop</p>
-    
-    <!-- O Handlebars vai renderizar essa mensagem de erro se a senha estiver errada -->
+<div class="cabecalho-seccao">
+    <h2><i class="fa-solid fa-lock"></i> Área Restrita</h2>
+    <p>Acesso exclusivo para administradores do Pet Shop</p>
+</div>
+
+<div class="painel-formulario" style="max-width: 450px;">
+    <!-- Alerta estilizado para senha errada -->
     {{#if erro}}
-        <p style="color: red; font-weight: bold;">{{erro}}</p>
+        <div class="alerta-selecao" style="background-color: #F8D7DA; color: #DC3545; border-color: #DC3545;">
+            <i class="fa-solid fa-triangle-exclamation"></i> {{erro}}
+        </div>
     {{/if}}
 
     <form action="/login" method="POST">
-        <label style="display: block; text-align: left; margin-top: 10px;">Usuário:</label>
-        <input type="text" name="usuario" required style="width: 100%;">
+        <div class="grupo-input">
+            <label><i class="fa-solid fa-user"></i> Usuário:</label>
+            <input type="text" name="usuario" placeholder="Digite seu usuário" required>
+        </div>
 
-        <label style="display: block; text-align: left; margin-top: 10px;">Senha:</label>
-        <input type="password" name="senha" required style="width: 100%;">
+        <div class="grupo-input">
+            <label><i class="fa-solid fa-key"></i> Senha:</label>
+            <input type="password" name="senha" placeholder="Digite sua senha" required>
+        </div>
 
-        <button type="submit" style="margin-top: 20px; width: 100%; padding: 10px; background: #333; color: white;">
-            Entrar
+        <button type="submit" class="btn btn-primario" style="width: 100%; margin-top: 15px;">
+            <i class="fa-solid fa-right-to-bracket"></i> Entrar no Sistema
         </button>
     </form>
     
-    <div style="margin-top: 15px;">
-        <a href="/">Voltar para a página de clientes</a>
+    <div style="margin-top: 25px; text-align: center; border-top: 1px solid #E9ECEF; padding-top: 15px;">
+        <a href="/" style="color: var(--cor-secundaria); font-weight: bold; text-decoration: none;">
+            <i class="fa-solid fa-arrow-left"></i> Voltar para clientes
+        </a>
     </div>
-</section>
+</div>

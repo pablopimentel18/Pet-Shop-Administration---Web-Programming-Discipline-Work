@@ -99,7 +99,6 @@ router.get('/listaPetAgenda', verificarLogin, async (req, res) => {
         ]).toArray();
 
         const agendamentosFormatados = listaAgendamentos.map(agendamento => ({
-            // Usamos o || para caso existam agendamentos antigos no seu banco feitos antes de criarmos a data
             data_exata: agendamento.data_atendimento, 
             dia: agendamento.dia,
             horario: agendamento.horario,
@@ -112,11 +111,33 @@ router.get('/listaPetAgenda', verificarLogin, async (req, res) => {
             .sort({ horario: 1 }) // Ordena para exibir do mais cedo para o mais tarde
             .toArray();
 
+        // NOVA LÓGICA: Agrupando a grade por dia e calculando Clientes Agendados
+        const diasOrdem = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const gradeAgrupada = [];
+
+        diasOrdem.forEach(dia => {
+            const horariosDoDia = gradeGeral
+                .filter(g => g.dia === dia)
+                .map(g => ({
+                    ...g,
+                    // Calcula quantos clientes estão agendados neste slot
+                    clientesAtendidos: g.capacidadeTotal - g.capacidadeDisponivel
+                }));
+
+            if (horariosDoDia.length > 0) {
+                gradeAgrupada.push({
+                    dia: dia,
+                    horarios: horariosDoDia
+                });
+            }
+        });
+
         res.render('admin', { 
             titulo: "Agenda de Atendimentos", 
             mostrarLista: true,
-            agendamentos: agendamentosFormatados ,
-            horariosCadastrados: gradeGeral
+            agendamentos: agendamentosFormatados,
+            gradeAgrupada: gradeAgrupada, // Usamos a variável agrupada agora
+            adminLogado: true // Informa ao layout (main) que o menu de Sair deve aparecer
         });
     } catch (error) {
         console.error("Erro ao procurar a agenda:", error);
@@ -140,7 +161,6 @@ router.get('/ajustaPetAgenda', verificarLogin, async (req, res) => {
         const grade = horariosUnicos.map(hora => {
             const capacidades = diasDaSemana.map(dia => {
                 const configDiaHora = configs.find(c => c.dia === dia && c.horario === hora);
-                // Agora retornamos um objeto com o dia e o valor
                 return {
                     dia: dia,
                     valor: configDiaHora ? configDiaHora.capacidadeTotal : 0
@@ -153,7 +173,8 @@ router.get('/ajustaPetAgenda', verificarLogin, async (req, res) => {
             titulo: "Configurar Horários", 
             mostrarFormulario: true,
             diasDaSemana: diasDaSemana,
-            grade: grade
+            grade: grade,
+            adminLogado: true // Garante que a barra de navegação entenda que o Admin está online
         });
 
     } catch (error) {
@@ -272,27 +293,22 @@ router.post('/ajustaPetAgenda', verificarLogin, async (req, res) => {
                 });
             
 
-
-
         } else{
             novo_qtd_disponivel = capacidadeNum - agendamentos_existentes;
         }
-
 
         await db.collection('configuracao').updateOne(
             { dia: dia, horario: horario }, // Critério de busca (o que identifica esse slot)
             { 
                 $set: { 
                     capacidadeTotal: capacidadeNum,
-
                     capacidadeDisponivel: novo_qtd_disponivel // Na criação, a disponível é igual à total
                 } 
             },
             { upsert: true } // Se não existir, insere. Se existir, atualiza.
         );
 
-        // Recarrega a página para o administrador poder inserir mais horários
-        res.redirect('/');
+        res.redirect('/ajustaPetAgenda');
         
     } catch (error) {
         console.error("Erro ao salvar configuração de agenda:", error);

@@ -1,20 +1,14 @@
 <div class="cabecalho-seccao">
-    <div>
-        <a href="/logout" style="padding: 6px 12px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">Sair</a>
-    </div>
     <h2>{{titulo}}</h2>
-
-
 </div>
-
 
 <!-- Só aparece na rota /ajustaPetAgenda -->
 {{#if mostrarFormulario}}
-<div class="painel-formulario">
-    <h3><i class="fa-solid fa-clock"></i> Adicionar / Atualizar Horário</h3>
+<div class="painel-formulario" style="max-width: 100%;">
+    <h3><i class="fa-solid fa-clock"></i> Adicionar / Atualizar Horário Único</h3>
     
-    <form action="/ajustaPetAgenda" method="POST">
-        <div class="grupo-input">
+    <form action="/ajustaPetAgenda" method="POST" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+        <div class="grupo-input" style="flex: 1; margin-bottom: 0;">
             <label>Dia da Semana:</label>
             <select name="dia" required>
                 <option value="" disabled selected>Selecione...</option>
@@ -27,10 +21,10 @@
             </select>
         </div>
 
-        <div class="grupo-input">
+        <div class="grupo-input" style="flex: 1; margin-bottom: 0;">
             <label>Horário:</label>
             <select name="horario" required>
-                <option value="" disabled selected>Escolha o horário...</option>
+                <option value="" disabled selected>Escolha...</option>
                 <option value="08:00">08:00</option>
                 <option value="08:30">08:30</option>
                 <option value="09:00">09:00</option>
@@ -40,8 +34,8 @@
                 <option value="11:00">11:00</option>
                 <option value="11:30">11:30</option>
                 <option value="12:00">12:00</option>
-                <option value="12:00">12:30</option>
-                <option value="12:00">13:00</option>
+                <option value="12:30">12:30</option>
+                <option value="13:00">13:00</option>
                 <option value="13:30">13:30</option>
                 <option value="14:00">14:00</option>
                 <option value="14:30">14:30</option>
@@ -54,55 +48,53 @@
             </select>
         </div>
 
-        <div class="grupo-input">
-            <label>Capacidade (atendimentos simultâneos):</label>
+        <div class="grupo-input" style="flex: 1; margin-bottom: 0;">
+            <label>Capacidade (vagas):</label>
             <input type="number" name="capacidade" min="0" required>
         </div>
 
-        <button type="submit" class="btn btn-primario">Salvar Configuração</button>
+        <button type="submit" class="btn btn-primario" style="flex: 1; height: 50px;">Salvar</button>
     </form>
 
+    <hr style="margin: 40px 0; border: 1px solid var(--cor-borda);">
 
-    <h3>Grade Semanal de Capacidade</h3>
-    <!-- O form aponta para uma nova rota que criaremos a seguir -->
+    <h3><i class="fa-solid fa-table-cells"></i> Grade Semanal de Capacidade (Edição Rápida)</h3>
     <form action="/salvarGradeMassa" method="POST">
-        <table border="1" style="width: 100%; text-align: center; border-collapse: collapse; margin-top: 10px;">
-            <thead style="background-color: #f2f2f2;">
-                <tr>
-                    <th style="padding: 10px;">Horário</th>
-                    {{#each diasDaSemana}}
-                        <th style="padding: 10px;">{{this}}</th>
-                    {{/each}}
-                </tr>
-            </thead>
-            <tbody>
-                {{#each grade}}
+        <div class="tabela-container">
+            <table class="tabela-admin" style="text-align: center;">
+                <thead>
                     <tr>
-                        <td style="padding: 10px; font-weight: bold;">{{this.horario}}</td>
-                        
-                        {{#each this.capacidades}}
-                            <td style="padding: 5px;">
-                                <!-- O name fica, por exemplo: grade[08:00][Segunda] -->
-                                <!-- Usamos ../horario para pegar a hora do laço de repetição "pai" -->
-                                <input type="number" 
-                                       name="grade[{{../horario}}][{{this.dia}}]" 
-                                       value="{{this.valor}}" 
-                                       min="0" 
-                                       style="width: 60px; text-align: center; padding: 5px;">
-                            </td>
+                        <th style="text-align: center;">Horário</th>
+                        {{#each diasDaSemana}}
+                            <th style="text-align: center;">{{this}}</th>
                         {{/each}}
                     </tr>
-                {{else}}
-                    <tr>
-                        <td colspan="7" style="padding: 20px;">Nenhum horário configurado ainda. Use o formulário acima para criar a primeira linha.</td>
-                    </tr>
-                {{/each}}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {{#each grade}}
+                        <tr>
+                            <td><strong>{{this.horario}}</strong></td>
+                            {{#each this.capacidades}}
+                                <td>
+                                    <input type="number"
+                                           name="grade[{{../horario}}][{{this.dia}}]"
+                                           value="{{this.valor}}"
+                                           min="0"
+                                           style="width: 60px; text-align: center; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                                </td>
+                            {{/each}}
+                        </tr>
+                    {{else}}
+                        <tr>
+                            <td colspan="7" style="padding: 20px; color: #6C757D;">Nenhum horário configurado ainda. Use o formulário acima para criar a primeira linha.</td>
+                        </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
         
-        <!-- Botão exclusivo para salvar a tabela -->
-        <button type="submit" style="margin-top: 15px; padding: 10px; background: green; color: white; width: 100%; font-weight: bold;">
-            Salvar Alterações da Grade
+        <button type="submit" style="margin-top: 15px; padding: 12px; background: #28a745; border: none; border-radius: 8px; color: white; width: 100%; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.3s;">
+            <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações da Grade
         </button>
     </form>
 </div>
@@ -114,64 +106,84 @@
     <!-- TABELA 1: Clientes Agendados -->
     <h3 style="color: var(--cor-secundaria); margin-bottom: 15px;"><i class="fa-solid fa-clipboard-list"></i> Próximos Atendimentos</h3>
     <div class="tabela-container" style="margin-bottom: 50px;">
-        <table border="1" style="width: 100%; text-align: left; border-collapse: collapse;">
-            <thead style="background-color: #f2f2f2;">
+        <table class="tabela-admin">
+            <thead>
                 <tr>
-                    <th style="padding: 8px;">Data</th>
-                    <th style="padding: 8px;">Horário</th>
-                    <th style="padding: 8px;">Cliente</th>
-                    <th style="padding: 8px;">CPF</th>
+                    <th>Data</th>
+                    <th>Horário</th>
+                    <th>Cliente</th>
+                    <th>CPF</th>
                 </tr>
             </thead>
             <tbody>
                 {{#each agendamentos}}
                     <tr>
-                        <td style="padding: 8px; font-weight: bold;">{{this.data_exata}} ({{this.dia}})</td>
-                        <td style="padding: 8px;">{{this.horario}}</td>
-                        <td style="padding: 8px;">{{this.cliente_nome}}</td>
-                        <td style="padding: 8px;">{{this.cliente_cpf}}</td>
+                        <td><strong>{{this.data_exata}} ({{this.dia}})</strong></td>
+                        <td>{{this.horario}}</td>
+                        <td>{{this.cliente_nome}}</td>
+                        <td>{{this.cliente_cpf}}</td>
                     </tr>
                 {{else}}
                     <tr>
-                        <td colspan="4" style="padding: 15px; text-align: center;">Nenhum agendamento registrado até o momento.</td>
+                        <td colspan="4" style="text-align: center; padding: 25px; color: #6C757D;">Nenhum agendamento registrado até o momento.</td>
                     </tr>
                 {{/each}}
             </tbody>
         </table>
     </div>
 
-    <!-- TABELA 2: Grade de Horários do Pet Shop (Configuração Geral) -->
+    <!-- TABELA 2: Grade de Horários do Pet Shop AGRUPADA -->
     <h3 style="color: var(--cor-secundaria); margin-bottom: 15px;"><i class="fa-solid fa-calendar-days"></i> Grade do Pet Shop (Disponibilidade)</h3>
-    <div class="tabela-container">
-        <table class="tabela-admin">
-            <thead>
+    
+    {{#if gradeAgrupada.length}}
+        <div style="display: flex; flex-direction: column; gap: 30px;">
+            {{#each gradeAgrupada}}
+                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: var(--sombra-suave);">
+                    <h4 style="color: var(--cor-primaria); margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid var(--cor-borda); padding-bottom: 8px; font-size: 1.2rem;">
+                        <i class="fa-regular fa-calendar"></i> {{this.dia}}
+                    </h4>
+                    
+                    <div class="tabela-container" style="margin-top: 0; box-shadow: none; border: 1px solid var(--cor-borda);">
+                        <table class="tabela-admin">
+                            <thead>
+                                <tr>
+                                    <th>Horário</th>
+                                    <th>Capacidade Total</th>
+                                    <th>Clientes Agendados</th>
+                                    <th>Vagas Disponíveis Agora</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{#each this.horarios}}
+                                    <tr>
+                                        <td><strong>{{this.horario}}</strong></td>
+                                        <td>{{this.capacidadeTotal}} atendimento(s)</td>
+                                        <td>
+                                            <span style="color: var(--cor-secundaria); font-weight: bold;">
+                                                <i class="fa-solid fa-user-check"></i> {{this.clientesAtendidos}}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span style="padding: 4px 10px; border-radius: 20px; background-color: {{#if this.capacidadeDisponivel}}#E6FAFD{{else}}#F8D7DA{{/if}}; color: {{#if this.capacidadeDisponivel}}var(--cor-primaria){{else}}#DC3545{{/if}}; font-weight: bold;">
+                                                {{this.capacidadeDisponivel}} vaga(s)
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {{/each}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {{/each}}
+        </div>
+    {{else}}
+        <div class="tabela-container">
+            <table class="tabela-admin">
                 <tr>
-                    <th>Dia</th>
-                    <th>Horário</th>
-                    <th>Capacidade Total</th>
-                    <th>Vagas Disponíveis Agora</th>
+                    <td style="text-align: center; padding: 25px; color: #6C757D;">Nenhum horário configurado. Vá em 'Gerenciar Horários' para abrir a agenda.</td>
                 </tr>
-            </thead>
-            <tbody>
-                {{#each horariosCadastrados}}
-                    <tr>
-                        <td><strong>{{this.dia}}</strong></td>
-                        <td>{{this.horario}}</td>
-                        <td>{{this.capacidadeTotal}} atendimento(s)</td>
-                        <td>
-                            <!-- Destaque visual se as vagas acabarem -->
-                            <span style="padding: 4px 10px; border-radius: 20px; background-color: {{#if this.capacidadeDisponivel}}#E6FAFD{{else}}#F8D7DA{{/if}}; color: {{#if this.capacidadeDisponivel}}var(--cor-primaria){{else}}#DC3545{{/if}}; font-weight: bold;">
-                                {{this.capacidadeDisponivel}} vaga(s)
-                            </span>
-                        </td>
-                    </tr>
-                {{else}}
-                    <tr>
-                        <td colspan="4" style="text-align: center; padding: 25px; color: #6C757D;">Nenhum horário configurado. Vá em 'Configurações' para abrir a agenda.</td>
-                    </tr>
-                {{/each}}
-            </tbody>
-        </table>
-    </div>
+            </table>
+        </div>
+    {{/if}}
 
 {{/if}}
