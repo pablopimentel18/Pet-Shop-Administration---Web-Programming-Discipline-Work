@@ -1,6 +1,12 @@
 <div class="cabecalho-seccao">
+    <div>
+        <a href="/logout" style="padding: 6px 12px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">Sair</a>
+    </div>
     <h2>{{titulo}}</h2>
+
+
 </div>
+
 
 <!-- Só aparece na rota /ajustaPetAgenda -->
 {{#if mostrarFormulario}}
@@ -55,6 +61,50 @@
 
         <button type="submit" class="btn btn-primario">Salvar Configuração</button>
     </form>
+
+
+    <h3>Grade Semanal de Capacidade</h3>
+    <!-- O form aponta para uma nova rota que criaremos a seguir -->
+    <form action="/salvarGradeMassa" method="POST">
+        <table border="1" style="width: 100%; text-align: center; border-collapse: collapse; margin-top: 10px;">
+            <thead style="background-color: #f2f2f2;">
+                <tr>
+                    <th style="padding: 10px;">Horário</th>
+                    {{#each diasDaSemana}}
+                        <th style="padding: 10px;">{{this}}</th>
+                    {{/each}}
+                </tr>
+            </thead>
+            <tbody>
+                {{#each grade}}
+                    <tr>
+                        <td style="padding: 10px; font-weight: bold;">{{this.horario}}</td>
+                        
+                        {{#each this.capacidades}}
+                            <td style="padding: 5px;">
+                                <!-- O name fica, por exemplo: grade[08:00][Segunda] -->
+                                <!-- Usamos ../horario para pegar a hora do laço de repetição "pai" -->
+                                <input type="number" 
+                                       name="grade[{{../horario}}][{{this.dia}}]" 
+                                       value="{{this.valor}}" 
+                                       min="0" 
+                                       style="width: 60px; text-align: center; padding: 5px;">
+                            </td>
+                        {{/each}}
+                    </tr>
+                {{else}}
+                    <tr>
+                        <td colspan="7" style="padding: 20px;">Nenhum horário configurado ainda. Use o formulário acima para criar a primeira linha.</td>
+                    </tr>
+                {{/each}}
+            </tbody>
+        </table>
+        
+        <!-- Botão exclusivo para salvar a tabela -->
+        <button type="submit" style="margin-top: 15px; padding: 10px; background: green; color: white; width: 100%; font-weight: bold;">
+            Salvar Alterações da Grade
+        </button>
+    </form>
 </div>
 {{/if}}
 
@@ -64,26 +114,26 @@
     <!-- TABELA 1: Clientes Agendados -->
     <h3 style="color: var(--cor-secundaria); margin-bottom: 15px;"><i class="fa-solid fa-clipboard-list"></i> Próximos Atendimentos</h3>
     <div class="tabela-container" style="margin-bottom: 50px;">
-        <table class="tabela-admin">
-            <thead>
+        <table border="1" style="width: 100%; text-align: left; border-collapse: collapse;">
+            <thead style="background-color: #f2f2f2;">
                 <tr>
-                    <th>Data (Dia)</th>
-                    <th>Horário</th>
-                    <th>Cliente</th>
-                    <th>CPF</th>
+                    <th style="padding: 8px;">Data</th>
+                    <th style="padding: 8px;">Horário</th>
+                    <th style="padding: 8px;">Cliente</th>
+                    <th style="padding: 8px;">CPF</th>
                 </tr>
             </thead>
             <tbody>
                 {{#each agendamentos}}
                     <tr>
-                        <td><strong>{{this.dia}}</strong></td>
-                        <td><span style="color: var(--cor-primaria); font-weight: bold;">{{this.horario}}</span></td>
-                        <td>{{this.cliente_nome}}</td>
-                        <td>{{this.cliente_cpf}}</td>
+                        <td style="padding: 8px; font-weight: bold;">{{this.data_exata}} ({{this.dia}})</td>
+                        <td style="padding: 8px;">{{this.horario}}</td>
+                        <td style="padding: 8px;">{{this.cliente_nome}}</td>
+                        <td style="padding: 8px;">{{this.cliente_cpf}}</td>
                     </tr>
                 {{else}}
                     <tr>
-                        <td colspan="4" style="text-align: center; padding: 25px; color: #6C757D;">Nenhum agendamento registrado até o momento.</td>
+                        <td colspan="4" style="padding: 15px; text-align: center;">Nenhum agendamento registrado até o momento.</td>
                     </tr>
                 {{/each}}
             </tbody>

@@ -2,25 +2,85 @@ const express = require('express');
 const router = express.Router();
 const { getDB } = require('../config/database');
 const { ObjectId } = require('mongodb');
+const bcrypt = require('bcryptjs');
 
+// 1. Rota do Cliente (Página inicial)
 router.get('/', async (req, res) => {
     try {
         const db = getDB();
         
-        // Busca apenas os slots onde a capacidadeDisponivel for maior que zero
-        const horariosDisponiveis = await db.collection('configuracao') // (Use o nome da coleção de configurações que você decidiu)
+        const horariosDisponiveis = await db.collection('configuracao')
             .find({ capacidadeDisponivel: { $gt: 0 } })
+            .sort({ horario: 1 }) 
             .toArray();
 
-        res.render('cliente', { horarios: horariosDisponiveis });
+        // Mantemos o Domingo aqui apenas porque o getDay() do JavaScript sempre retorna 0 para ele
+        const ordemDias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const hoje = new Date();
+        
+        const horaAtual = hoje.getHours();
+        const minutoAtual = hoje.getMinutes();
+        
+        const horariosAgrupados = [];
+
+        let diasValidos = 0; 
+        let deslocamentoDias = 7; // Controla quantos dias no calendário real nós já avançamos
+
+        // Ampliado para buscar 15 dias úteis de agenda
+        while (diasValidos < 6) {
+            const dataAlvo = new Date();
+            dataAlvo.setDate(hoje.getDate() + deslocamentoDias); 
+            
+            const indiceDiaSemana = dataAlvo.getDay(); 
+            const nomeDia = ordemDias[indiceDiaSemana];
+
+            // Já preparamos o deslocamento para a avaliação da próxima repetição do while
+            deslocamentoDias++;
+
+            // Se for domingo, interrompe a lógica atual e vai para o próximo loop sem contar como "dia válido"
+            if (nomeDia === 'Domingo') {
+                continue; 
+            }
+
+            const dataFormatada = dataAlvo.toLocaleDateString('pt-BR'); 
+
+            const slotsDoDia = horariosDisponiveis
+                .filter(h => {
+                    if (h.dia !== nomeDia) return false;
+                    
+                    // Se deslocamentoDias é 1, significa que estamos processando o "hoje"
+                    if (deslocamentoDias === 1) {
+                        const [horaSlot, minSlot] = h.horario.split(':').map(Number);
+                        
+                        if (horaSlot < horaAtual || (horaSlot === horaAtual && minSlot <= minutoAtual)) {
+                            return false; 
+                        }
+                    }
+                    return true;
+                })
+                .map(h => ({ ...h, dataExata: dataFormatada })); 
+
+            if (slotsDoDia.length > 0) {
+                horariosAgrupados.push({
+                    dia: nomeDia,
+                    dataExata: dataFormatada, 
+                    slots: slotsDoDia
+                });
+            }
+            
+            // Só incrementa a contagem dos 15 dias se passou pelo "continue" do Domingo
+            diasValidos++; 
+        }
+
+        res.render('cliente', { horariosAgrupados: horariosAgrupados });
+        
     } catch (error) {
         console.error("Erro ao buscar horários:", error);
         res.status(500).send("Erro interno do servidor");
     }
 });
-
-// 2. Rota de Administração: Visualizar a agenda
-router.get('/listaPetAgenda', async (req, res) => {
+//Visualizar a agenda
+router.get('/listaPetAgenda', verificarLogin, async (req, res) => {
     try {
         const db = getDB();
         
@@ -39,20 +99,24 @@ router.get('/listaPetAgenda', async (req, res) => {
         ]).toArray();
 
         const agendamentosFormatados = listaAgendamentos.map(agendamento => ({
+            // Usamos o || para caso existam agendamentos antigos no seu banco feitos antes de criarmos a data
+            data_exata: agendamento.data_atendimento, 
             dia: agendamento.dia,
             horario: agendamento.horario,
             cliente_nome: agendamento.dados_do_cliente.nome,
             cliente_cpf: agendamento.dados_do_cliente.cpf
         }));
 
-        const configHorarios = await db.collection('configuracao').find().sort({ dia: 1, horario: 1 }).toArray();
+        const gradeGeral = await db.collection('configuracao')
+            .find()
+            .sort({ horario: 1 }) // Ordena para exibir do mais cedo para o mais tarde
+            .toArray();
 
-        // Passamos a flag mostrarLista como true e enviamos os dados
         res.render('admin', { 
             titulo: "Agenda de Atendimentos", 
             mostrarLista: true,
-            agendamentos: agendamentosFormatados,
-            horariosCadastrados: configHorarios
+            agendamentos: agendamentosFormatados ,
+            horariosCadastrados: gradeGeral
         });
     } catch (error) {
         console.error("Erro ao procurar a agenda:", error);
@@ -60,15 +124,114 @@ router.get('/listaPetAgenda', async (req, res) => {
     }
 });
 
-router.get('/ajustaPetAgenda', async (req, res) => {
-    // Passamos a flag mostrarFormulario como true
-    res.render('admin', { 
-        titulo: "Configurar Horários", 
-        mostrarFormulario: true 
-    });
-})
+router.get('/ajustaPetAgenda', verificarLogin, async (req, res) => {
+    try {
+        const db = getDB();
+        
+        // 1. Busca todas as configurações e ordena pelo horário
+        const configs = await db.collection('configuracao').find().sort({ horario: 1 }).toArray();
+
+        // 2. Cria um array apenas com os horários únicos (ex: ['08:00', '09:00', '14:00'])
+        const horariosUnicos = [...new Set(configs.map(c => c.horario))].sort();
+        
+        const diasDaSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+        // 3. Constrói a matriz (grade) para a tabela
+        const grade = horariosUnicos.map(hora => {
+            const capacidades = diasDaSemana.map(dia => {
+                const configDiaHora = configs.find(c => c.dia === dia && c.horario === hora);
+                // Agora retornamos um objeto com o dia e o valor
+                return {
+                    dia: dia,
+                    valor: configDiaHora ? configDiaHora.capacidadeTotal : 0
+                };
+            });
+            return { horario: hora, capacidades: capacidades };
+        });
+
+        res.render('admin', { 
+            titulo: "Configurar Horários", 
+            mostrarFormulario: true,
+            diasDaSemana: diasDaSemana,
+            grade: grade
+        });
+
+    } catch (error) {
+        console.error("Erro ao carregar a grade de horários:", error);
+        res.status(500).send("Erro interno ao carregar a página.");
+    }
+});
+
+router.post('/salvarGradeMassa', verificarLogin, async (req, res) => {
+    try {
+        const db = getDB();
+        const { grade } = req.body; 
+        
+        // O Express transforma os inputs em um objeto assim:
+        // { '08:00': { 'Segunda': '2', 'Terça': '0', ... }, '09:00': ... }
+
+        // Laço duplo: percorre as horas e, dentro delas, os dias
+        for (const horario in grade) {
+            const dias = grade[horario];
+            
+            for (const dia in dias) {
+                const capacidadeNum = parseInt(dias[dia]);
+
+                // AQUI REUTILIZAMOS A SUA LÓGICA DE ATUALIZAÇÃO E REMOÇÃO DE EXCEDENTES
+                const existe = await db.collection('configuracao').findOne({ dia: dia, horario: horario });
+                let agendamentos_existentes = 0;
+                
+                if (existe) {
+                    agendamentos_existentes = (existe.capacidadeTotal - existe.capacidadeDisponivel);
+                }
+
+                let novo_qtd_disponivel;
+
+                if (capacidadeNum < agendamentos_existentes) {
+                    novo_qtd_disponivel = 0;
+                    let qtd_remover = agendamentos_existentes - capacidadeNum;
+
+                    const dados_remover = await db.collection('agendamentos')
+                        .find({ dia: dia, horario: horario }) 
+                        .project({ _id: 1 }) 
+                        .sort({ data_registro: -1 })
+                        .limit(qtd_remover) 
+                        .toArray();
+                        
+                    let ids_remover = dados_remover.map(item => item._id);
+                    
+                    if (ids_remover.length > 0) {
+                        await db.collection('agendamentos').deleteMany({ _id: { $in: ids_remover } });
+                    }
+                } else {
+                    novo_qtd_disponivel = capacidadeNum - agendamentos_existentes;
+                }
+
+                // Salva a atualização no banco
+                await db.collection('configuracao').updateOne(
+                    { dia: dia, horario: horario },
+                    { 
+                        $set: { 
+                            capacidadeTotal: capacidadeNum,
+                            capacidadeDisponivel: novo_qtd_disponivel 
+                        } 
+                    },
+                    { upsert: true }
+                );
+            }
+        }
+
+        // Após percorrer toda a tabela e salvar tudo, recarrega a página
+        res.redirect('/ajustaPetAgenda');
+
+    } catch (error) {
+        console.error("Erro ao salvar grade em massa:", error);
+        res.status(500).send("Erro interno ao tentar salvar a grade.");
+    }
+});
+
 // Rota POST para receber os dados do formulário e salvar no banco
-router.post('/ajustaPetAgenda', async (req, res) => {
+router.post('/ajustaPetAgenda', verificarLogin, async (req, res) => {
     try {
         const db = getDB();
         
@@ -187,7 +350,7 @@ router.post('/cadastroCliente', async (req, res) => {
 router.post('/agendar', async (req, res) => {
     try {
         const db = getDB();
-        const { horario_id, cpf } = req.body;
+        const { horario_id, cpf, data_exata } = req.body;
         const cpfLimpo = cpf.replace(/\D/g, '');
 
         const cliente = await db.collection('clientes').findOne({ cpf: cpfLimpo });
@@ -233,19 +396,20 @@ router.post('/agendar', async (req, res) => {
         await db.collection('agendamentos').insertOne({
             horario_id: new ObjectId(horario_id),
             cliente_id: cliente._id,
-            dia: horarioAtualizado.dia,         // Salvamos aqui para facilitar a vida do Admin depois
-            horario: horarioAtualizado.horario, // Salvamos aqui para facilitar a vida do Admin depois
-            data_registro: new Date()           // Data em que o clique no botão foi feito
+            dia: horarioAtualizado.dia,     
+            data_atendimento: data_exata, 
+            horario: horarioAtualizado.horario, 
+            data_registro: new Date()           
         });
 
-        // REQUISITO 5: Informa ao cliente que o agendamento foi um sucesso
+        
         res.send(`
             <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Sucesso - Pet Shop</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></head>
             <body style="display: flex; align-items: center; justify-content: center; height: 100vh; background-color: var(--cor-fundo);">
                 <div class="painel-formulario" style="text-align: center; max-width: 600px; border-top: 5px solid #28a745;">
                     <i class="fa-solid fa-circle-check" style="font-size: 4rem; color: #28a745; margin-bottom: 20px;"></i>
                     <h2 style="color: var(--cor-secundaria); margin-bottom: 15px;">Agendamento Confirmado!</h2>
-                    <p style="color: var(--cor-texto); margin-bottom: 25px; font-size: 1.1rem;">Olá, <strong>${cliente.nome}</strong>. O banho e tosa foi marcado com sucesso para <strong>${horarioAtualizado.dia} às ${horarioAtualizado.horario}</strong>.</p>
+                    <p style="color: var(--cor-texto); margin-bottom: 25px; font-size: 1.1rem;">Olá, <strong>${cliente.nome}</strong>. O banho e tosa foi marcado com sucesso para <strong>${horarioAtualizado.dia}, ${data_exata}, às ${horarioAtualizado.horario}</strong>.</p>
                     <a href="/" class="btn btn-primario" style="text-decoration: none; display: inline-block;">Voltar ao Início</a>
                 </div>
             </body></html>
@@ -258,4 +422,52 @@ router.post('/agendar', async (req, res) => {
 });
 
 
+
+function verificarLogin(req, res, next) {
+    if (req.session.logado) {
+        next(); // Tem o "crachá", pode prosseguir para a rota desejada
+    } else {
+        res.redirect('/login'); // Não tem o crachá, expulsa para o login
+    }
+}
+
+
+router.get('/login', (req, res) => {
+    res.render('login');
+});
+
+router.post('/login', async (req, res) => {
+    try {
+        const db = getDB();
+        const { usuario, senha } = req.body;
+
+        // 1. Busca o usuário no banco de dados
+        const admin = await db.collection('administradores').findOne({ usuario: usuario });
+
+        // Se o usuário não existir, barra o acesso
+        if (!admin) {
+            return res.render('login', { erro: 'Usuário ou senha incorretos!' });
+        }
+
+        // 2. Compara a senha digitada no formulário com o Hash salvo no banco
+        const senhaValida = await bcrypt.compare(senha, admin.senha);
+
+        // 3. Libera ou bloqueia a sessão
+        if (senhaValida) {
+            req.session.logado = true;
+            res.redirect('/listaPetAgenda');
+        } else {
+            res.render('login', { erro: 'Usuário ou senha incorretos!' });
+        }
+
+    } catch (error) {
+        console.error("Erro no login:", error);
+        res.status(500).send("Erro interno ao tentar fazer login.");
+    }
+});
+
+router.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/login');
+});
 module.exports = router;

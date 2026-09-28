@@ -1,0 +1,25 @@
+<section style="max-width: 300px; margin: 50px auto; text-align: center;">
+    <h2>Área Restrita</h2>
+    <p>Acesso exclusivo para funcionários do Pet Shop</p>
+    
+    <!-- O Handlebars vai renderizar essa mensagem de erro se a senha estiver errada -->
+    {{#if erro}}
+        <p style="color: red; font-weight: bold;">{{erro}}</p>
+    {{/if}}
+
+    <form action="/login" method="POST">
+        <label style="display: block; text-align: left; margin-top: 10px;">Usuário:</label>
+        <input type="text" name="usuario" required style="width: 100%;">
+
+        <label style="display: block; text-align: left; margin-top: 10px;">Senha:</label>
+        <input type="password" name="senha" required style="width: 100%;">
+
+        <button type="submit" style="margin-top: 20px; width: 100%; padding: 10px; background: #333; color: white;">
+            Entrar
+        </button>
+    </form>
+    
+    <div style="margin-top: 15px;">
+        <a href="/">Voltar para a página de clientes</a>
+    </div>
+</section>

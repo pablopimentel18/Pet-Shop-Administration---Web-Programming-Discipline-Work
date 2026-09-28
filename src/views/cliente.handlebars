@@ -3,19 +3,32 @@
     <p>Selecione o melhor horário para o seu pet e garanta um atendimento exclusivo.</p>
 </div>
 
-{{#if horarios.length}}
-    <!-- Grade de Horários Estilizada -->
-    <div class="grid-horarios">
-        {{#each horarios}}
-            <div class="cartao-horario">
-                <div>
-                    <p class="dia">{{this.dia}}</p>
-                    <p class="hora">{{this.horario}}</p>
-                    <p class="vagas"><i class="fa-solid fa-users"></i> {{this.capacidadeDisponivel}} vagas disponíveis</p>
+{{#if horariosAgrupados.length}}
+    <!-- Dias da Semana e Horários -->
+    <div style="margin-bottom: 20px;">
+        {{#each horariosAgrupados}}
+            <!-- Bloco de um dia específico (ex: Segunda) -->
+            <div style="margin-bottom: 25px; padding: 15px; border: 1px solid #E9ECEF; border-radius: 8px; background-color: #FAFAFA; box-shadow: var(--sombra-suave);">
+                
+                <!-- Título do dia -->
+                <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--cor-secundaria); border-bottom: 2px solid var(--cor-primaria); padding-bottom: 8px;">
+                    <i class="fa-regular fa-calendar"></i> {{this.dia}} ({{this.dataExata}})
+                </h4>
+                
+                <!-- Flexbox: Organiza os horários um ao lado do outro na mesma linha -->
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    {{#each this.slots}}
+                        <div class="cartao-horario" style="flex: 1 1 200px; max-width: 250px;">
+                            <div>
+                                <p class="hora">{{this.horario}}</p>
+                                <p class="vagas" style="margin-bottom: 10px;"><i class="fa-solid fa-users"></i> {{this.capacidadeDisponivel}} vagas</p>
+                            </div>
+                            <button type="button" class="btn btn-selecionar" onclick="selecionarHorario('{{this._id}}', '{{../dia}}', '{{this.horario}}', '{{this.dataExata}}')">
+                                Selecionar
+                            </button>
+                        </div>
+                    {{/each}}
                 </div>
-                <button type="button" class="btn btn-selecionar" onclick="selecionarHorario('{{this._id}}', '{{this.dia}}', '{{this.horario}}')">
-                    Selecionar
-                </button>
             </div>
         {{/each}}
     </div>
@@ -23,14 +36,14 @@
     <!-- Formulário Final -->
     <div class="painel-formulario" id="zona-formulario">
         <h3><i class="fa-solid fa-calendar-check"></i> Confirme seu Horário</h3>
-        
-        <div id="alerta-selecao" class="alerta-selecao" style="display: none;">
+        <div id="alerta-selecao" class="alerta-selecao" style="display: none; margin-bottom: 15px; padding: 10px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 5px;">
             Horário escolhido: <strong id="texto-horario-selecionado">Nenhum</strong>
         </div>
 
         <form action="/agendar" method="POST" id="formAgendamento">
             <!-- O ID oculto que vai para o rotas.js do Pablo -->
             <input type="hidden" id="horario_id" name="horario_id" required>
+            <input type="hidden" id="data_exata" name="data_exata" required>
 
             <div class="grupo-input">
                 <label for="cpf">Informe o seu CPF (já cadastrado):</label>
@@ -52,14 +65,14 @@
     </div>
 
     <script>
-        function selecionarHorario(id, dia, hora) {
+        function selecionarHorario(id, dia, hora, dataExata) {
             // Alimenta o backend do Pablo
             document.getElementById('horario_id').value = id;
-            
+            document.getElementById('data_exata').value = dataExata;
             // UI/UX para o cliente
             const alerta = document.getElementById('alerta-selecao');
             alerta.style.display = 'block';
-            document.getElementById('texto-horario-selecionado').innerText = dia + ' às ' + hora;
+            document.getElementById('texto-horario-selecionado').innerText = dia + ' às ' + hora + ' (' + dataExata + ')';
             
             document.getElementById('btn-submit').disabled = false;
             document.getElementById('zona-formulario').scrollIntoView({ behavior: 'smooth', block: 'center' });

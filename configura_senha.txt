@@ -1,0 +1,21 @@
+router.get('/setupAdmin', async (req, res) => {
+    try {
+        const db = getDB();
+        
+        // 1. Gera um "salt" (um fator de aleatoriedade para a criptografia)
+        const salt = await bcrypt.genSalt(10);
+        
+        // 2. Criptografa a senha 'pet123'
+        const senhaCriptografada = await bcrypt.hash('pet123', salt);
+        
+        // 3. Salva no banco de dados
+        await db.collection('administradores').insertOne({
+            usuario: 'admin',
+            senha: senhaCriptografada
+        });
+        
+        res.send("Administrador criado com sucesso! Verifique no Compass e apague esta rota.");
+    } catch (error) {
+        res.status(500).send("Erro ao criar admin: " + error);
+    }
+});
