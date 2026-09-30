@@ -133,48 +133,47 @@
     </div>
 
     <!-- TABELA 2: Grade de Horários do Pet Shop AGRUPADA -->
-    <h3 style="color: var(--cor-secundaria); margin-bottom: 15px;"><i class="fa-solid fa-calendar-days"></i> Grade do Pet Shop (Disponibilidade)</h3>
     
     {{#if gradeAgrupada.length}}
         <div style="display: flex; flex-direction: column; gap: 30px;">
-            {{#each gradeAgrupada}}
-                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: var(--sombra-suave);">
-                    <h4 style="color: var(--cor-primaria); margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid var(--cor-borda); padding-bottom: 8px; font-size: 1.2rem;">
-                        <i class="fa-regular fa-calendar"></i> {{this.dia}}
-                    </h4>
+                                    
+                    <h3 style="color: var(--cor-secundaria); margin-bottom: 15px;"><i class="fa-solid fa-calendar-days"></i> Disponibilidade dos Próximos 7 Dias</h3>
                     
-                    <div class="tabela-container" style="margin-top: 0; box-shadow: none; border: 1px solid var(--cor-borda);">
-                        <table class="tabela-admin">
-                            <thead>
-                                <tr>
-                                    <th>Horário</th>
-                                    <th>Capacidade Total</th>
-                                    <th>Clientes Agendados</th>
-                                    <th>Vagas Disponíveis Agora</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {{#each this.horarios}}
+                    <div class="tabela-container">
+                        {{#each gradeAgrupada}}
+                            <!-- Cabeçalho do dia específico -->
+                            <h4 style="margin-top: 20px; background-color: #E9ECEF; padding: 10px; border-radius: 5px; color: #333;">
+                                {{this.dia}} - {{this.dataExata}}
+                            </h4>
+                            
+                            <table class="tabela-admin" style="width: 100%; text-align: left; border-collapse: collapse; margin-bottom: 20px;">
+                                <thead>
                                     <tr>
-                                        <td><strong>{{this.horario}}</strong></td>
-                                        <td>{{this.capacidadeTotal}} atendimento(s)</td>
-                                        <td>
-                                            <span style="color: var(--cor-secundaria); font-weight: bold;">
-                                                <i class="fa-solid fa-user-check"></i> {{this.clientesAtendidos}}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span style="padding: 4px 10px; border-radius: 20px; background-color: {{#if this.capacidadeDisponivel}}#E6FAFD{{else}}#F8D7DA{{/if}}; color: {{#if this.capacidadeDisponivel}}var(--cor-primaria){{else}}#DC3545{{/if}}; font-weight: bold;">
-                                                {{this.capacidadeDisponivel}} vaga(s)
-                                            </span>
-                                        </td>
+                                        <th style="padding: 10px; border-bottom: 2px solid #ddd;">Horário</th>
+                                        <th style="padding: 10px; border-bottom: 2px solid #ddd;">Capacidade Total</th>
+                                        <th style="padding: 10px; border-bottom: 2px solid #ddd;">Status das Vagas</th>
                                     </tr>
-                                {{/each}}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {{#each this.horarios}}
+                                        <tr>
+                                            <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>{{this.horario}}</strong></td>
+                                            <td style="padding: 10px; border-bottom: 1px solid #eee;">{{this.capacidadeTotal}} atendimento(s)</td>
+                                            <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                                <!-- A lógica de cor agora funciona perfeitamente com os dados calculados do Node -->
+                                                <span style="padding: 4px 10px; border-radius: 20px; background-color: {{#if this.capacidadeDisponivel}}#E6FAFD{{else}}#F8D7DA{{/if}}; color: {{#if this.capacidadeDisponivel}}var(--cor-primaria){{else}}#DC3545{{/if}}; font-weight: bold;">
+                                                    {{this.capacidadeDisponivel}} vaga(s) disponível(is)
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    {{/each}}
+                                </tbody>
+                            </table>
+                        {{else}}
+                            <p style="text-align: center; padding: 20px; color: #6C757D;">Nenhuma projeção disponível. Configure a grade de horários primeiro.</p>
+                        {{/each}}
                     </div>
-                </div>
-            {{/each}}
+
         </div>
     {{else}}
         <div class="tabela-container">

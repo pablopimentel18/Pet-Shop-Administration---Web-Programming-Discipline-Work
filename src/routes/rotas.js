@@ -8,52 +8,59 @@ router.get('/', async (req, res) => {
     try {
         const db = getDB();
         
-        const horariosDisponiveis = await db.collection('configuracao')
-            .find({ capacidadeDisponivel: { $gt: 0 } })
+        const configuracoesGerais = await db.collection('configuracao')
+            .find({ capacidadeTotal: { $gt: 0 } })
             .sort({ horario: 1 }) 
             .toArray();
 
         const ordemDias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
         const hoje = new Date();
-        
         const horaAtual = hoje.getHours();
         const minutoAtual = hoje.getMinutes();
         
         const horariosAgrupados = [];
-
         let diasValidos = 0; 
-        let deslocamentoDias = 7; //dias avançados
+        let deslocamentoDias = 0; 
 
-        while (diasValidos < 6) {
+        while (diasValidos < 8) {
             const dataAlvo = new Date();
             dataAlvo.setDate(hoje.getDate() + deslocamentoDias); 
-            
             const indiceDiaSemana = dataAlvo.getDay(); 
             const nomeDia = ordemDias[indiceDiaSemana];
-
+            
             deslocamentoDias++;
-
-            if (nomeDia === 'Domingo') {
-                continue; 
-            }
+            if (nomeDia === 'Domingo') continue; 
 
             const dataFormatada = dataAlvo.toLocaleDateString('pt-BR'); 
 
-            const slotsDoDia = horariosDisponiveis
-                .filter(h => {
-                    if (h.dia !== nomeDia) return false;
+            const agendamentosDestaData = await db.collection('agendamentos')
+                .find({ data_atendimento: dataFormatada })
+                .toArray();
+
+            const slotsDoDia = configuracoesGerais
+                .filter(config => {
+                    if (config.dia !== nomeDia) return false;
                     
-                    //significa que estamos processando o "hoje"
                     if (deslocamentoDias === 1) {
-                        const [horaSlot, minSlot] = h.horario.split(':').map(Number);
-                        
+                        const [horaSlot, minSlot] = config.horario.split(':').map(Number);
                         if (horaSlot < horaAtual || (horaSlot === horaAtual && minSlot <= minutoAtual)) {
                             return false; 
                         }
                     }
                     return true;
                 })
-                .map(h => ({ ...h, dataExata: dataFormatada })); 
+                .map(config => {
+                    // 3. A MÁGICA: Conta as vagas ocupadas hoje e calcula o que sobrou
+                    const ocupadas = agendamentosDestaData.filter(a => a.horario === config.horario).length;
+                    const vagasRestantes = config.capacidadeTotal - ocupadas;
+
+                    return { 
+                        ...config, 
+                        dataExata: dataFormatada,
+                        capacidadeDisponivel: vagasRestantes // Injeta o valor real no objeto
+                    };
+                })
+                .filter(slot => slot.capacidadeDisponivel > 0); // Só exibe se sobrou vaga após o cálculo
 
             if (slotsDoDia.length > 0) {
                 horariosAgrupados.push({
@@ -62,17 +69,17 @@ router.get('/', async (req, res) => {
                     slots: slotsDoDia
                 });
             }
-            
             diasValidos++; 
         }
 
         res.render('cliente', { horariosAgrupados: horariosAgrupados });
         
     } catch (error) {
-        console.error("Erro ao buscar horários:", error);
-        res.status(500).send("Erro interno do servidor");
+        console.error("Erro:", error);
+        res.status(500).send("Erro interno");
     }
 });
+
 
 //Visualizar a agenda
 router.get('/listaPetAgenda', verificarLogin, async (req, res) => {
@@ -90,7 +97,7 @@ router.get('/listaPetAgenda', verificarLogin, async (req, res) => {
                 }
             },
             {
-                $unwind: '$dados_do_cliente'     //descompacta o array gerado pelo lookup
+                $unwind: '$dados_do_cliente' //descompacta o array gerado pelo lookup
             }
         ]).toArray();
 
@@ -108,24 +115,48 @@ router.get('/listaPetAgenda', verificarLogin, async (req, res) => {
             .toArray();
 
 
-        const diasOrdem = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const ordemDias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const hoje = new Date();
         const gradeAgrupada = [];
+        
+        let diasProcessados = 0;
+        let deslocamento = 0;
 
-        diasOrdem.forEach(dia => {
-            const horariosDoDia = gradeGeral
-                .filter(g => g.dia === dia)
-                .map(g => ({
-                    ...g,
-                    clientesAtendidos: g.capacidadeTotal - g.capacidadeDisponivel
-                }));
+        while (diasProcessados < 7) {
+            const dataAlvo = new Date();
+            dataAlvo.setDate(hoje.getDate() + deslocamento);
+            const nomeDia = ordemDias[dataAlvo.getDay()];
+            deslocamento++;
 
-            if (horariosDoDia.length > 0) {
+            if (nomeDia === 'Domingo') continue;
+
+            const dataFormatada = dataAlvo.toLocaleDateString('pt-BR');
+            
+            // Separa os moldes configurados para este dia da semana
+            const moldesDoDia = gradeGeral.filter(g => g.dia === nomeDia);
+
+            if (moldesDoDia.length > 0) {
+                const horariosComVagas = moldesDoDia.map(molde => {
+                    // Conta quantos agendamentos já existem para esta data exata e horário
+                    const ocupados = agendamentosFormatados.filter(a => 
+                        a.data_exata === dataFormatada && a.horario === molde.horario
+                    ).length;
+
+                    return {
+                        horario: molde.horario,
+                        capacidadeTotal: molde.capacidadeTotal,
+                        capacidadeDisponivel: molde.capacidadeTotal - ocupados
+                    };
+                });
+
                 gradeAgrupada.push({
-                    dia: dia,
-                    horarios: horariosDoDia
+                    dia: nomeDia,
+                    dataExata: dataFormatada,
+                    horarios: horariosComVagas
                 });
             }
-        });
+            diasProcessados++;
+        }
 
         res.render('admin', { 
             titulo: "Agenda de Atendimentos", 
@@ -133,12 +164,14 @@ router.get('/listaPetAgenda', verificarLogin, async (req, res) => {
             agendamentos: agendamentosFormatados,
             gradeAgrupada: gradeAgrupada, 
             adminLogado: true
+
         });
-    } catch (error) {
-        console.error("Erro ao procurar a agenda:", error);
-        res.status(500).send("Erro interno do servidor.");
-    }
-});
+        
+        } catch (error) {
+        console.error("Erro ao carregar a grade de horários:", error);
+        res.status(500).send("Erro interno ao carregar a página.");
+        }
+        });
 
 router.get('/ajustaPetAgenda', verificarLogin, async (req, res) => {
     try {
@@ -179,57 +212,52 @@ router.get('/ajustaPetAgenda', verificarLogin, async (req, res) => {
 router.post('/ajustaPetAgenda', verificarLogin, async (req, res) => {
     try {
         const db = getDB();
-        
         const { dia, horario, capacidade } = req.body;
-        
         const capacidadeNum = parseInt(capacidade);
 
-        let agendamentos_existentes;
-        let novo_qtd_disponivel;
-        const existe = await db.collection('configuracao').findOne({ dia: dia, horario: horario });
-        if (existe) {
-            agendamentos_existentes = (existe.capacidadeTotal - existe.capacidadeDisponivel);
-        } else{
-            agendamentos_existentes = 0;
+        // 1. Busca todos os agendamentos para esse dia da semana e horário
+        const agendamentosAfetados = await db.collection('agendamentos')
+            .find({ dia: dia, horario: horario })
+            .toArray();
+
+        // 2. Agrupa os agendamentos pela data exata de atendimento (ex: 05/10, 12/10)
+        const agendamentosPorData = {};
+        agendamentosAfetados.forEach(ag => {
+            if (!agendamentosPorData[ag.data_atendimento]) {
+                agendamentosPorData[ag.data_atendimento] = [];
+            }
+            agendamentosPorData[ag.data_atendimento].push(ag);
+        });
+
+        // 3. Verifica cada data. Se exceder a nova capacidade, separa os mais recentes para exclusão
+        let idsParaRemover = [];
+        for (const dataExata in agendamentosPorData) {
+            let listaDestaData = agendamentosPorData[dataExata];
+
+            if (listaDestaData.length > capacidadeNum) {
+                // Ordena do mais recente para o mais antigo (data_registro)
+                listaDestaData.sort((a, b) => b.data_registro - a.data_registro);
+
+                let qtdRemover = listaDestaData.length - capacidadeNum;
+                let remover = listaDestaData.slice(0, qtdRemover).map(item => item._id);
+                idsParaRemover.push(...remover);
+            }
         }
 
-        if(capacidadeNum < agendamentos_existentes){
-            novo_qtd_disponivel = 0;
-            let qtd_remover = agendamentos_existentes - capacidadeNum;
-
-            const dados_remover = await db.collection('agendamentos')
-                .find( { dia: dia, horario: horario } ) 
-                .project({ _id: 1 }) 
-                .sort({ data_registro: -1 })
-                .limit(qtd_remover) 
-                .toArray()
-            let ids_remover = dados_remover.map(item => item._id);
-            await db.collection('agendamentos').deleteMany(
-                { _id: { $in: ids_remover } })
-                .then(resultado => {
-                    console.log(`Removidos ${resultado.deletedCount} agendamentos para ajustar a capacidade.`);
-                })
-                .catch(erro => {
-                    console.error("Erro ao remover agendamentos:", erro);
-                });
-            
-
-        } else{
-            novo_qtd_disponivel = capacidadeNum - agendamentos_existentes;
+        // 4. Executa a deleção em massa dos excedentes
+        if (idsParaRemover.length > 0) {
+            await db.collection('agendamentos').deleteMany({ _id: { $in: idsParaRemover } });
+            console.log(`Removidos ${idsParaRemover.length} agendamentos para ajustar a capacidade.`);
         }
 
+        // 5. Salva o novo molde na configuração
         await db.collection('configuracao').updateOne(
-            { dia: dia, horario: horario }, // Critério de busca (o que identifica esse slot)
-            { 
-                $set: { 
-                    capacidadeTotal: capacidadeNum,
-                    capacidadeDisponivel: novo_qtd_disponivel // Na criação, a disponível é igual à total
-                } 
-            },
-            { upsert: true } // Se não existir, insere. Se existir, atualiza.
+            { dia: dia, horario: horario }, 
+            { $set: { capacidadeTotal: capacidadeNum } },
+            { upsert: true } 
         );
 
-        res.redirect('/ajustaPetAgenda');
+        res.redirect('/');
         
     } catch (error) {
         console.error("Erro ao salvar configuração de agenda:", error);
@@ -237,67 +265,53 @@ router.post('/ajustaPetAgenda', verificarLogin, async (req, res) => {
     }
 });
 
-
 router.post('/salvarGradeMassa', verificarLogin, async (req, res) => {
     try {
         const db = getDB();
         const { grade } = req.body; 
-        
-        // O Express transforma os inputs em um objeto assim:
-        // { '08:00': { 'Segunda': '2', 'Terça': '0', ... }, '09:00': ... }
 
-        // Laço duplo: percorre as horas e, dentro delas, os dias
         for (const horario in grade) {
             const dias = grade[horario];
             
             for (const dia in dias) {
                 const capacidadeNum = parseInt(dias[dia]);
 
-                // AQUI REUTILIZAMOS A SUA LÓGICA DE ATUALIZAÇÃO E REMOÇÃO DE EXCEDENTES
-                const existe = await db.collection('configuracao').findOne({ dia: dia, horario: horario });
-                let agendamentos_existentes = 0;
-                
-                if (existe) {
-                    agendamentos_existentes = (existe.capacidadeTotal - existe.capacidadeDisponivel);
-                }
+                const agendamentosAfetados = await db.collection('agendamentos')
+                    .find({ dia: dia, horario: horario })
+                    .toArray();
 
-                let novo_qtd_disponivel;
-
-                if (capacidadeNum < agendamentos_existentes) {
-                    novo_qtd_disponivel = 0;
-                    let qtd_remover = agendamentos_existentes - capacidadeNum;
-
-                    const dados_remover = await db.collection('agendamentos')
-                        .find({ dia: dia, horario: horario }) 
-                        .project({ _id: 1 }) 
-                        .sort({ data_registro: -1 })
-                        .limit(qtd_remover) 
-                        .toArray();
-                        
-                    let ids_remover = dados_remover.map(item => item._id);
-                    
-                    if (ids_remover.length > 0) {
-                        await db.collection('agendamentos').deleteMany({ _id: { $in: ids_remover } });
+                const agendamentosPorData = {};
+                agendamentosAfetados.forEach(ag => {
+                    if (!agendamentosPorData[ag.data_atendimento]) {
+                        agendamentosPorData[ag.data_atendimento] = [];
                     }
-                } else {
-                    novo_qtd_disponivel = capacidadeNum - agendamentos_existentes;
+                    agendamentosPorData[ag.data_atendimento].push(ag);
+                });
+
+                let idsParaRemover = [];
+                for (const dataExata in agendamentosPorData) {
+                    let listaDestaData = agendamentosPorData[dataExata];
+
+                    if (listaDestaData.length > capacidadeNum) {
+                        listaDestaData.sort((a, b) => b.data_registro - a.data_registro);
+                        let qtdRemover = listaDestaData.length - capacidadeNum;
+                        let remover = listaDestaData.slice(0, qtdRemover).map(item => item._id);
+                        idsParaRemover.push(...remover);
+                    }
                 }
 
-                // Salva a atualização no banco
+                if (idsParaRemover.length > 0) {
+                    await db.collection('agendamentos').deleteMany({ _id: { $in: idsParaRemover } });
+                }
+
                 await db.collection('configuracao').updateOne(
                     { dia: dia, horario: horario },
-                    { 
-                        $set: { 
-                            capacidadeTotal: capacidadeNum,
-                            capacidadeDisponivel: novo_qtd_disponivel 
-                        } 
-                    },
+                    { $set: { capacidadeTotal: capacidadeNum } },
                     { upsert: true }
                 );
             }
         }
 
-        // Após percorrer toda a tabela e salvar tudo, recarrega a página
         res.redirect('/ajustaPetAgenda');
 
     } catch (error) {
@@ -305,7 +319,6 @@ router.post('/salvarGradeMassa', verificarLogin, async (req, res) => {
         res.status(500).send("Erro interno ao tentar salvar a grade.");
     }
 });
-
 
 // Rota GET: Exibe o formulário de cadastro de cliente
 router.get('/cadastroCliente', (req, res) => {
@@ -374,16 +387,18 @@ router.post('/agendar', async (req, res) => {
                 </body></html>
             `);
         }  
-        // REQUISITOS 1 e 4: Verifica a disponibilidade E atualiza a capacidade de forma atômica
-        // O $inc diminui a capacidadeDisponivel em 1 APENAS se ela for maior que 0 ($gt: 0)
 
-        const horarioAtualizado = await db.collection('configuracao').findOneAndUpdate(
-            { _id: new ObjectId(horario_id), capacidadeDisponivel: { $gt: 0 } },             {$inc: { capacidadeDisponivel: -1 } },
-            { returnDocument: 'after' } // Retorna os dados do horário APÓS ter diminuído a vaga
-        );
+        // 1. Busca o molde da configuração
+        const config = await db.collection('configuracao').findOne({ _id: new ObjectId(horario_id) });
 
-        // Se o findOneAndUpdate retornar vazio, significa que alguém pegou a última vaga no milissegundo anterior
-        if (!horarioAtualizado) {
+        // 2. Conta rigorosamente quantos pets estão agendados naquela data e horário exatos
+        const ocupacaoAtual = await db.collection('agendamentos').countDocuments({
+            data_atendimento: data_exata,
+            horario: config.horario
+        });
+
+        // 3. Verifica se a capacidade estourou
+        if (ocupacaoAtual >= config.capacidadeTotal) {
             return res.send(`
                 <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Aviso - Pet Shop</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></head>
                 <body style="display: flex; align-items: center; justify-content: center; height: 100vh; background-color: var(--cor-fundo);">
@@ -397,25 +412,23 @@ router.post('/agendar', async (req, res) => {
             `);
         }
 
-        // REQUISITOS 2 e 3: Registra o agendamento e associa ao cliente
-
+        // 4. Salva o agendamento
         await db.collection('agendamentos').insertOne({
             horario_id: new ObjectId(horario_id),
             cliente_id: cliente._id,
-            dia: horarioAtualizado.dia,     
+            dia: config.dia,     
             data_atendimento: data_exata, 
-            horario: horarioAtualizado.horario, 
+            horario: config.horario, 
             data_registro: new Date()           
         });
 
-        
         res.send(`
             <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Sucesso - Pet Shop</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></head>
             <body style="display: flex; align-items: center; justify-content: center; height: 100vh; background-color: var(--cor-fundo);">
                 <div class="painel-formulario" style="text-align: center; max-width: 600px; border-top: 5px solid #28a745;">
                     <i class="fa-solid fa-circle-check" style="font-size: 4rem; color: #28a745; margin-bottom: 20px;"></i>
                     <h2 style="color: var(--cor-secundaria); margin-bottom: 15px;">Agendamento Confirmado!</h2>
-                    <p style="color: var(--cor-texto); margin-bottom: 25px; font-size: 1.1rem;">Olá, <strong>${cliente.nome}</strong>. O banho e tosa foi marcado com sucesso para <strong>${horarioAtualizado.dia}, ${data_exata}, às ${horarioAtualizado.horario}</strong>.</p>
+                    <p style="color: var(--cor-texto); margin-bottom: 25px; font-size: 1.1rem;">Olá, <strong>${cliente.nome}</strong>. O banho e tosa foi marcado com sucesso para <strong>${config.dia}, ${data_exata}, às ${config.horario}</strong>.</p>
                     <a href="/" class="btn btn-primario" style="text-decoration: none; display: inline-block;">Voltar ao Início</a>
                 </div>
             </body></html>
@@ -426,7 +439,6 @@ router.post('/agendar', async (req, res) => {
         res.status(500).send("Erro interno do servidor ao processar sua solicitação.");
     }
 });
-
 
 
 function verificarLogin(req, res, next) {
