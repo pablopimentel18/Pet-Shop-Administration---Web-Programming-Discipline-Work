@@ -50,7 +50,6 @@ router.get('/', async (req, res) => {
                     return true;
                 })
                 .map(config => {
-                    // 3. A MÁGICA: Conta as vagas ocupadas hoje e calcula o que sobrou
                     const ocupadas = agendamentosDestaData.filter(a => a.horario === config.horario).length;
                     const vagasRestantes = config.capacidadeTotal - ocupadas;
 
@@ -122,7 +121,7 @@ router.get('/listaPetAgenda', verificarLogin, async (req, res) => {
         let diasProcessados = 0;
         let deslocamento = 0;
 
-        while (diasProcessados < 7) {
+        while (diasProcessados < 8) {
             const dataAlvo = new Date();
             dataAlvo.setDate(hoje.getDate() + deslocamento);
             const nomeDia = ordemDias[dataAlvo.getDay()];
@@ -215,12 +214,11 @@ router.post('/ajustaPetAgenda', verificarLogin, async (req, res) => {
         const { dia, horario, capacidade } = req.body;
         const capacidadeNum = parseInt(capacidade);
 
-        // 1. Busca todos os agendamentos para esse dia da semana e horário
         const agendamentosAfetados = await db.collection('agendamentos')
             .find({ dia: dia, horario: horario })
             .toArray();
 
-        // 2. Agrupa os agendamentos pela data exata de atendimento (ex: 05/10, 12/10)
+        //Agrupa os agendamentos pela data exata de atendimento
         const agendamentosPorData = {};
         agendamentosAfetados.forEach(ag => {
             if (!agendamentosPorData[ag.data_atendimento]) {
@@ -229,7 +227,7 @@ router.post('/ajustaPetAgenda', verificarLogin, async (req, res) => {
             agendamentosPorData[ag.data_atendimento].push(ag);
         });
 
-        // 3. Verifica cada data. Se exceder a nova capacidade, separa os mais recentes para exclusão
+        //Verifica cada data. Se exceder a nova capacidade, separa os mais recentes para exclusão
         let idsParaRemover = [];
         for (const dataExata in agendamentosPorData) {
             let listaDestaData = agendamentosPorData[dataExata];
@@ -244,20 +242,20 @@ router.post('/ajustaPetAgenda', verificarLogin, async (req, res) => {
             }
         }
 
-        // 4. Executa a deleção em massa dos excedentes
+        //Executa a deleção em massa dos excedentes
         if (idsParaRemover.length > 0) {
             await db.collection('agendamentos').deleteMany({ _id: { $in: idsParaRemover } });
             console.log(`Removidos ${idsParaRemover.length} agendamentos para ajustar a capacidade.`);
         }
 
-        // 5. Salva o novo molde na configuração
+        //Salva o novo molde na configuração
         await db.collection('configuracao').updateOne(
             { dia: dia, horario: horario }, 
             { $set: { capacidadeTotal: capacidadeNum } },
             { upsert: true } 
         );
 
-        res.redirect('/');
+        res.redirect('/ajustaPetAgenda');
         
     } catch (error) {
         console.error("Erro ao salvar configuração de agenda:", error);
@@ -320,19 +318,16 @@ router.post('/salvarGradeMassa', verificarLogin, async (req, res) => {
     }
 });
 
-// Rota GET: Exibe o formulário de cadastro de cliente
 router.get('/cadastroCliente', (req, res) => {
     res.render('cadastroCliente');
 });
 
-// Rota POST: Salva o cliente e redireciona para o agendamento
 router.post('/cadastroCliente', async (req, res) => {
     try {
         const db = getDB();
         const { nome, cpf, email } = req.body;
         const cpfLimpo = cpf.replace(/\D/g, '');
 
-        // Verifica se o CPF já existe no banco (Primary Key)
         const clienteExiste = await db.collection('clientes').findOne({ cpf: cpfLimpo });
         
         if (clienteExiste) {
@@ -349,7 +344,6 @@ router.post('/cadastroCliente', async (req, res) => {
             `);
         }
 
-        // Insere o novo cliente
         await db.collection('clientes').insertOne({
             nome: nome,
             cpf: cpfLimpo,
@@ -357,7 +351,6 @@ router.post('/cadastroCliente', async (req, res) => {
             data_cadastro: new Date()
         });
 
-        // Após cadastrar, leva o usuário direto para a tela de escolher o horário
         res.redirect('/');
 
     } catch (error) {
@@ -388,16 +381,13 @@ router.post('/agendar', async (req, res) => {
             `);
         }  
 
-        // 1. Busca o molde da configuração
         const config = await db.collection('configuracao').findOne({ _id: new ObjectId(horario_id) });
 
-        // 2. Conta rigorosamente quantos pets estão agendados naquela data e horário exatos
         const ocupacaoAtual = await db.collection('agendamentos').countDocuments({
             data_atendimento: data_exata,
             horario: config.horario
         });
 
-        // 3. Verifica se a capacidade estourou
         if (ocupacaoAtual >= config.capacidadeTotal) {
             return res.send(`
                 <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Aviso - Pet Shop</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></head>
@@ -412,14 +402,13 @@ router.post('/agendar', async (req, res) => {
             `);
         }
 
-        // 4. Salva o agendamento
         await db.collection('agendamentos').insertOne({
             horario_id: new ObjectId(horario_id),
             cliente_id: cliente._id,
             dia: config.dia,     
             data_atendimento: data_exata, 
             horario: config.horario, 
-            data_registro: new Date()           
+            data_registro: new Date()             
         });
 
         res.send(`
